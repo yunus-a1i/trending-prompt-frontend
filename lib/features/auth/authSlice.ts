@@ -1,8 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AuthState, User } from "./authTypes";
-import { loginUser } from "./authThunks";
+import { loginUser, registerUser } from "./authThunks";
 
 const initialState: AuthState = {
+  userId: null,
   user: null,
   token: null,
   isAuthenticated: false,
@@ -22,7 +23,7 @@ export const authSlice = createSlice({
     },
     setUserFromToken: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User; token: string }>,
     ) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
@@ -31,6 +32,21 @@ export const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(registerUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.userId = action.payload._id;
+        state.token = action.payload.token;
+        console.log(action.payload);
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ?? "Something went wrong";
+      })
+
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;

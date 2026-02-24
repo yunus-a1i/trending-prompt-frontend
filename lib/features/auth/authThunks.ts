@@ -12,6 +12,21 @@ interface LoginResponse {
   token: string;
 }
 
+export const registerUser = createAsyncThunk<
+  {name:string, token:string,_id:string},
+  {name:string,email:string,password:string},
+  { rejectValue: string }
+>("auth/registerUser", async (payload, { rejectWithValue }) => {
+  try {
+    const res = await axiosInstance.post("/api/user/create-user", payload);
+
+    return res.data;
+  } catch (err) {
+    return rejectWithValue("Login failed");
+  }
+});
+
+
 export const loginUser = createAsyncThunk<
   LoginResponse,
   LoginPayload,

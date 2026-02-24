@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppDispatch, useAppSelector } from "@/lib/store";
-import { loginUser } from "@/lib/features/auth/authThunks";
+import { loginUser, registerUser } from "@/lib/features/auth/authThunks";
 import {
   selectAuthLoading,
   selectAuth,
@@ -14,13 +14,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const loginSchema = z.object({
+  name: z.string().min(1, "Name must be at least 1 character"),
   email: z.string().min(1, "Email is required").email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 6 characters"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function LoginComponent() {
+export default function SignUpComponent() {
   const dispatch = useAppDispatch();
   const loading = useAppSelector(selectAuthLoading);
   const { error } = useAppSelector(selectAuth);
@@ -35,8 +36,8 @@ export default function LoginComponent() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    await dispatch(loginUser(data));
-    router.replace('/feed');
+    await dispatch(registerUser(data));
+    router.replace('/login');
   };
 
   return (
@@ -45,20 +46,6 @@ export default function LoginComponent() {
         onSubmit={handleSubmit(onSubmit)}
         className="flex min-h-screen text-black"
       >
-        <div className="hidden lg:block bg-[#111111] text-white w-full px-8.5">
-          <div className="h-[80%]"></div>
-          <div>
-            <h1 className="font-normal text-6xl font-serif italic">
-              Trending Prompt
-            </h1>
-            <p>
-              Discover trending AI prompts crafted to boost creativity,
-              productivity, and results. Explore ready-to-use prompts for
-              ChatGPT, Midjourney, coding, marketing, design, and more—all in
-              one place.
-            </p>
-          </div>
-        </div>
         <div className=" w-full px-3 lg:px-10 py-20 lg:py-43.5 space-y-2 bg-white shadow-md">
           <div>
             <h2 className="font-medium text-5xl lg:text-6xl font-serif italic leading-[100%] tracking-tight mb-2">
@@ -84,6 +71,22 @@ export default function LoginComponent() {
             <div className="absolute top-0 p-1 bottom-0 bg-white rounded-full ">
               OR
             </div>
+          </div>
+
+          <div className="mb-4 ">
+            <label className="block text-black mb-1 text-sm font-medium">
+              Name
+            </label>
+            <input
+              type="name"
+              {...register("name")}
+              className="bg-[#D9D9D9] px-4  h-10 w-full flex items-center justify-center rounded-full text-black  focus:outline-none focus:ring focus:ring-gray-400"
+            />
+            {errors.name && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.name.message}
+              </p>
+            )}
           </div>
 
           <div className="mb-4 ">
@@ -123,15 +126,28 @@ export default function LoginComponent() {
             disabled={loading}
             className="bg-black text-white  h-10 w-full flex items-center justify-center rounded-full text-center focus:outline-none focus:ring focus:ring-gray-400"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Sign up..." : "Register"}
           </button>
           <div className="flex justify-between text-xs lg:text-sm py-4">
-            <Link href={'/register'}>Don’t have an Account ? Sign up</Link>
+            <Link href={'/login'}>Already have an Account ? Login</Link>
             <Link href={'/forgot-password'}>forgot password?</Link>
           </div>
         </div>
 
-        
+        <div className="hidden lg:block bg-[#111111] text-white w-full px-8.5">
+          <div className="h-[80%]"></div>
+          <div>
+            <h1 className="font-normal text-6xl font-serif italic">
+              Trending Prompt
+            </h1>
+            <p>
+              Discover trending AI prompts crafted to boost creativity,
+              productivity, and results. Explore ready-to-use prompts for
+              ChatGPT, Midjourney, coding, marketing, design, and more—all in
+              one place.
+            </p>
+          </div>
+        </div>
       </form>
     </div>
   );
