@@ -1,5 +1,6 @@
 import Image from "next/image";
 import logo from "@/public/logo.png";
+import Link from "next/link";
 export default function HomeNavbar() {
   return (
     <>
@@ -13,7 +14,8 @@ export default function HomeNavbar() {
           <div>How it works</div>
         </div>
         <button className="bg-[#C1C1C1] px-3 py-1 rounded-full text-black italic font-normal text-2xl">
-          Get Started
+          <Link href={'/login'}>
+          Get Started</Link>
         </button>
       </div>
     </>
