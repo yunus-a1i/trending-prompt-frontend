@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
+import { useForm } from "react-hook-form";
 
 const AI_MODELS = [
   "GPT-4o",
@@ -39,44 +40,35 @@ const INITIAL_FORM: PostFormData = {
   is_featured: false,
 };
 
+const sections = ["Core", "Prompt", "Media", "Meta"];
+
 export default function CreatePostForm() {
-  const [form, setForm] = useState<PostFormData>(INITIAL_FORM);
+  const [activeSection, setActiveSection] = useState(0);
   const [tagInput, setTagInput] = useState("");
   const [rawImagePreview, setRawImagePreview] = useState<string | null>(null);
   const [promptImagePreview, setPromptImagePreview] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [activeSection, setActiveSection] = useState(0);
-
   const rawImageRef = useRef<HTMLInputElement | null>(null);
-  const promptImageRef = useRef<HTMLInputElement |null>(null);
+  const promptImageRef = useRef<HTMLInputElement | null>(null);
 
-  const sections = ["Core", "Prompt", "Media", "Meta"];
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<PostFormData>({
+    defaultValues: INITIAL_FORM,
+  });
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
-  };
+  const form = watch();
 
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = tagInput.trim().toLowerCase().replace(/^#/, "");
-      if (!form.tags.includes(newTag) && form.tags.length < 10) {
-        setForm((prev) => ({ ...prev, tags: [...prev.tags, newTag] }));
-      }
-      setTagInput("");
-    }
-  };
+  const promptRemaining = 1500 - (form.prompt_text?.length ?? 0);
+  const descRemaining = 200 - (form.prompt_description?.length ?? 0);
 
-  const removeTag = (tag: string) => {
-    setForm((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
+  const onSubmit = async (data: PostFormData) => {
+    // Replace with your actual submit logic
+    console.log("Submitting:", data);
+    await new Promise((r) => setTimeout(r, 1000));
   };
 
   const handleImageUpload = (
@@ -86,65 +78,29 @@ export default function CreatePostForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onload = () => {
       const result = reader.result as string;
-      if (field === "raw_image") {
-        setRawImagePreview(result);
-        setForm((prev) => ({ ...prev, raw_image: result }));
-      } else {
-        setPromptImagePreview(result);
-        setForm((prev) => ({ ...prev, prompt_image: result }));
-      }
+      setValue(field, result);
+      if (field === "raw_image") setRawImagePreview(result);
+      else setPromptImagePreview(result);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setSubmitting(false);
-    setSubmitted(true);
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim().replace(/,/g, "");
+      if (newTag && !form.tags.includes(newTag) && form.tags.length < 10) {
+        setValue("tags", [...form.tags, newTag]);
+      }
+      setTagInput("");
+    }
   };
 
-  const handleReset = () => {
-    setForm(INITIAL_FORM);
-    setTagInput("");
-    setRawImagePreview(null);
-    setPromptImagePreview(null);
-    setSubmitted(false);
-    setActiveSection(0);
+  const removeTag = (tag: string) => {
+    setValue("tags", form.tags.filter((t) => t !== tag));
   };
-
-  const promptRemaining = 1500 - form.prompt_text.length;
-  const descRemaining = 200 - form.prompt_description.length;
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="relative inline-flex items-center justify-center w-24 h-24 mb-8">
-            <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-            <div className="relative w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center">
-              <svg className="w-9 h-9 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            </div>
-          </div>
-          <h2 className="text-3xl font-light text-white mb-3 tracking-tight" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>
-            Post Created
-          </h2>
-          <p className="text-zinc-500 mb-10 font-light">Your prompt has been published to the gallery.</p>
-          <button
-            onClick={handleReset}
-            className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white text-sm font-light rounded-full transition-all duration-300"
-          >
-            Create another
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -180,16 +136,13 @@ export default function CreatePostForm() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
           {activeSection === 0 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <Field label="Title" required>
                 <input
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  required
+                  {...register("title", { required: true })}
                   placeholder="Cinematic forest at golden hour…"
                   className={inputCls}
                 />
@@ -201,7 +154,7 @@ export default function CreatePostForm() {
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setForm((p) => ({ ...p, ai_model: p.ai_model === m ? "" : m }))}
+                      onClick={() => setValue("ai_model", form.ai_model === m ? "" : m)}
                       className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 border ${
                         form.ai_model === m
                           ? "bg-violet-500/20 border-violet-500/50 text-violet-300"
@@ -220,7 +173,7 @@ export default function CreatePostForm() {
                     <button
                       key={s}
                       type="button"
-                      onClick={() => setForm((p) => ({ ...p, status: s }))}
+                      onClick={() => setValue("status", s)}
                       className={`flex-1 py-2.5 rounded-lg text-xs font-medium capitalize transition-all duration-200 border ${
                         form.status === s
                           ? s === "active"
@@ -241,10 +194,7 @@ export default function CreatePostForm() {
             <div className="space-y-5 animate-in fade-in duration-300">
               <Field label="Prompt Text" required hint={`${promptRemaining} characters remaining`} hintDanger={promptRemaining < 100}>
                 <textarea
-                  name="prompt_text"
-                  value={form.prompt_text}
-                  onChange={handleChange}
-                  required
+                  {...register("prompt_text", { required: true, maxLength: 1500 })}
                   maxLength={1500}
                   rows={8}
                   placeholder="Describe your prompt in full detail. Be specific about style, lighting, mood, camera angle…"
@@ -254,9 +204,7 @@ export default function CreatePostForm() {
 
               <Field label="Short Description" hint={`${descRemaining} characters remaining`} hintDanger={descRemaining < 20}>
                 <textarea
-                  name="prompt_description"
-                  value={form.prompt_description}
-                  onChange={handleChange}
+                  {...register("prompt_description", { maxLength: 200 })}
                   maxLength={200}
                   rows={3}
                   placeholder="One-line summary shown in the card preview…"
@@ -274,7 +222,7 @@ export default function CreatePostForm() {
                 preview={rawImagePreview}
                 inputRef={rawImageRef}
                 onChange={(e) => handleImageUpload(e, "raw_image")}
-                onClear={() => { setRawImagePreview(null); setForm(p => ({ ...p, raw_image: "" })); }}
+                onClear={() => { setRawImagePreview(null); setValue("raw_image", ""); }}
               />
               <ImageUpload
                 label="Prompt Reference Image"
@@ -282,7 +230,7 @@ export default function CreatePostForm() {
                 preview={promptImagePreview}
                 inputRef={promptImageRef}
                 onChange={(e) => handleImageUpload(e, "prompt_image")}
-                onClear={() => { setPromptImagePreview(null); setForm(p => ({ ...p, prompt_image: "" })); }}
+                onClear={() => { setPromptImagePreview(null); setValue("prompt_image", ""); }}
               />
             </div>
           )}
@@ -290,8 +238,10 @@ export default function CreatePostForm() {
           {activeSection === 3 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <Field label="Tags" hint="Press Enter or comma to add · max 10">
-                <div className={`${inputCls} min-h-[80px] flex flex-wrap gap-2 items-start cursor-text`}
-                  onClick={() => document.getElementById("tag-input")?.focus()}>
+                <div
+                  className={`${inputCls} min-h-[80px] flex flex-wrap gap-2 items-start cursor-text`}
+                  onClick={() => document.getElementById("tag-input")?.focus()}
+                >
                   {form.tags.map((tag) => (
                     <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/20 border border-violet-500/30 rounded-full text-xs text-violet-300">
                       #{tag}
@@ -318,7 +268,7 @@ export default function CreatePostForm() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setForm((p) => ({ ...p, is_featured: !p.is_featured }))}
+                  onClick={() => setValue("is_featured", !form.is_featured)}
                   className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${form.is_featured ? "bg-violet-500" : "bg-white/10"}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${form.is_featured ? "translate-x-5" : "translate-x-0"}`} />
@@ -354,10 +304,10 @@ export default function CreatePostForm() {
             ) : (
               <button
                 type="submit"
-                disabled={submitting || !form.title || !form.prompt_text}
+                disabled={isSubmitting || !form.title || !form.prompt_text}
                 className="px-7 py-2.5 bg-violet-500 hover:bg-violet-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-full transition-all duration-200 flex items-center gap-2"
               >
-                {submitting ? (
+                {isSubmitting ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Publishing…
@@ -420,7 +370,7 @@ function ImageUpload({
   label: string;
   hint: string;
   preview: string | null;
-  inputRef: React.RefObject<HTMLInputElement |null>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onClear: () => void;
 }) {
